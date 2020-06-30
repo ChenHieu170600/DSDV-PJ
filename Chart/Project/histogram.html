@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<!-- Load d3.js -->
+<script src="https://d3js.org/d3.v5.js"></script>
+
+<!-- Initialize a select button -->
+<select id="selectButton"></select>
+
+<!-- Create a div where the graph will take place -->
+<div id="my_dataviz"></div>
+<p>
+  <label># bins</label>
+  <input type="number" min="1" max="100" step="10" value="10" id="nBin">
+</p>
+
+<script>
+
+// set the dimensions and margins of the graph
+var margin = {top: 100, right: 70, bottom: 50, left: 50},
+    width = 700 - margin.left - margin.right,
+    height = 600 - margin.top - margin.bottom;
+
+// append the svg object to the body of the page
+var svg = d3.select("#my_dataviz")
+  .append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+  .append("g")
+    .attr("transform",
+          "translate(" + margin.left + "," + margin.top + ")");
+
+// get the data
+d3.csv("https://raw.githubusercontent.com/weeblord2030/DSDV-PJ/master/Data/time_series_covid19_confirmed_global.csv", function(data) {
+
+		return{
+		
+		May: data["5/31/20"],
+		March: data["3/31/20"],
+		April : data["4/30/20"],
+		
+		
+	};
+	})
+	.then(function(data) {
+	console.log(data);
+	
+	svg.append("text") // Add tittle
+        .attr("class", "title")
+        .attr("text-anchor", "middle")
+        .attr("x", margin.left + 200)
+        .attr("y", -50)
+        .attr("transform", "rotate(360)")
+        .attr("font-size", 30)
+        .attr("font-family", "sans-serif")
+        .text(
+            " Distribution of Confirmed cases      "
+        )
+        .attr("font-weight", "bold");
+		//y label
+		 svg.append("text")
+      .attr("transform", "rotate(-90)")
+      .attr("y", 0 - margin.left)
+      .attr("x",0 - (height / 2))
+      .attr("dy", "1em")
+      .style("text-anchor", "middle")
+      .text("Number of country");  
+
+		// x label
+		svg.append("text") // Add tittle
+        .attr("text-anchor", "middle")
+        .attr("x", margin.left + 220)
+        .attr("y", 500)
+        .attr("transform", "rotate(360)")
+        .attr("font-size", 20)
+        .text(
+					" Cases  "
+        )
+        
+	 var allGroup =[ "March","April","May","Reset"]
+	
+	
+  // List of groups (here I have one group per column)
+  d3.select("#selectButton")
+    .selectAll('myOptions')
+    .data(allGroup)
+    .enter()
+    .append('option')
+    .text(function (d) { return d; }) // text showed in the menu
+    .attr("value", function (d) { return d; }) // corresponding value returned by the button
+ 
+	 d3.select("#selectButton").on("change", function(d){
+    selectedGroup = this.value
+	console.log(selectedGroup);
+	if(selectedGroup == "May"){
+		updatedata5();
+	} else if (selectedGroup=="March"){
+		updatedata3();
+
+	}else if (selectedGroup=="April"){
+		updatedata4();
+	}else if (selectedGroup=="Reset"){
+		svg.selectAll("rect","yAxis").remove();
+	}
+
+   
+	})
+	
+
+
+function updatedata3(){
+	
+ var x = d3.scaleLinear()
+      .domain([0, 18000])     // can use this instead of 1000 to have the max of data: d3.max(data, function(d) { return +d.price })
+      .range([0, width]);
+  svg.append("g")
+      .attr("transform", "translate(0," + height + ")")
+      .call(d3.axisBottom(x));
+
+  // Y axis: initialization
+  var y = d3.scaleLinear()
+      .range([height, 0]);
+  var yAxis = svg.append("g")
+
+  // A function that builds the graph for a specific value of bin
+  function update(nBin) {
+
+    // set the parameters for the histogram
+    var histogram = d3.histogram()
+        .value(function(d) { return d.March; })   // I need to give the vector of value
+        .domain(x.domain())  // then the domain of the graphic
+        .thresholds(x.ticks(nBin)); // then the numbers of bins
+
+    // And apply this function to data to get the bins
+    var bins = histogram(data);
+
+    // Y axis: update now that we know the domain
+    y.domain([0, 200]);   // d3.hist has to be called before the Y axis obviously
+    yAxis
+        .transition()
+        .duration(1000)
+        .call(d3.axisLeft(y));
+
+    // Join the rect with the bins data
+    var u = svg.selectAll("rect")
+        .data(bins)
+
+    // Manage the existing bars and eventually the new ones:
+    u
+        .enter()
+        .append("rect") // Add a new rect for each new elements
+        .merge(u) // get the already existing elements as well
+        .transition() // and apply changes to all of them
+        .duration(1000)
+          .attr("x", 1)
+          .attr("transform", function(d) { return "translate(" + x(d.x0) + "," + y(d.length) + ")"; })
+          .attr("width", function(d) { return x(d.x1) - x(d.x0)  ; })
+          .attr("height", function(d) { return height - y(d.length); })
+          .style("fill", "blue")
+		  .style("stroke", "1")
+		 
+
+
+    // If less bar in the new histogram, I delete the ones not in use anymore
+    u
+        .exit()
+        .remove()
+
+    }
+
+
+  // Initialize with 20 bins
+  update(20)
+
+
+  // Listen to the button -> update if user change it
+  d3.select("#nBin").on("input", function() {
+    update(+this.value);
+  });
+
+}
+
+
+
+
+function updatedata4(){
+	
+ var x = d3.scaleLinear()
+      .domain([0, 18000])     // can use this instead of 1000 to have the max of data: d3.max(data, function(d) { return +d.price })
+      .range([0, width]);
+  svg.append("g")
+      .attr("transform", "translate(0," + height + ")")
+      .call(d3.axisBottom(x));
+
+  // Y axis: initialization
+  var y = d3.scaleLinear()
+      .range([height, 0]);
+  var yAxis = svg.append("g")
+
+  // A function that builds the graph for a specific value of bin
+  function update(nBin) {
+
+    // set the parameters for the histogram
+    var histogram = d3.histogram()
+        .value(function(d) { return d.April; })   // I need to give the vector of value
+        .domain(x.domain())  // then the domain of the graphic
+        .thresholds(x.ticks(nBin)); // then the numbers of bins
+
+    // And apply this function to data to get the bins
+    var bins = histogram(data);
+
+    // Y axis: update now that we know the domain
+    y.domain([0,200]);   // d3.hist has to be called before the Y axis obviously
+    yAxis
+        .transition()
+        .duration(1000)
+        .call(d3.axisLeft(y));
+
+    // Join the rect with the bins data
+    var u = svg.selectAll("rect")
+        .data(bins)
+
+    // Manage the existing bars and eventually the new ones:
+    u
+        .enter()
+        .append("rect") // Add a new rect for each new elements
+        .merge(u) // get the already existing elements as well
+        .transition() // and apply changes to all of them
+        .duration(1000)
+          .attr("x", 1)
+          .attr("transform", function(d) { return "translate(" + x(d.x0) + "," + y(d.length) + ")"; })
+          .attr("width", function(d) { return x(d.x1) - x(d.x0)  ; })
+          .attr("height", function(d) { return height - y(d.length); })
+          .style("fill", "#69b3a2")
+		  .style("stroke", "1")
+
+
+    // If less bar in the new histogram, I delete the ones not in use anymore
+    u
+        .exit()
+        .remove()
+
+    }
+
+
+  // Initialize with 20 bins
+  update(20)
+
+
+  // Listen to the button -> update if user change it
+  d3.select("#nBin").on("input", function() {
+    update(+this.value);
+  });
+
+}
+
+
+
+
+function updatedata5(){
+	
+ var x = d3.scaleLinear()
+      .domain([0, 18000])     // can use this instead of 1000 to have the max of data: d3.max(data, function(d) { return +d.price })
+      .range([0, width]);
+  svg.append("g")
+      .attr("transform", "translate(0," + height + ")")
+      .call(d3.axisBottom(x));
+
+  // Y axis: initialization
+  var y = d3.scaleLinear()
+      .range([height, 0]);
+  var yAxis = svg.append("g")
+
+  // A function that builds the graph for a specific value of bin
+  function update(nBin) {
+
+    // set the parameters for the histogram
+    var histogram = d3.histogram()
+        .value(function(d) { return d.May; })   // I need to give the vector of value
+        .domain(x.domain())  // then the domain of the graphic
+        .thresholds(x.ticks(nBin)); // then the numbers of bins
+
+    // And apply this function to data to get the bins
+    var bins = histogram(data);
+
+    // Y axis: update now that we know the domain
+    y.domain([0, 200]);   // d3.hist has to be called before the Y axis obviously
+    yAxis
+        .transition()
+        .duration(1000)
+        .call(d3.axisLeft(y));
+
+    // Join the rect with the bins data
+    var u = svg.selectAll("rect")
+        .data(bins)
+
+    // Manage the existing bars and eventually the new ones:
+    u
+        .enter()
+        .append("rect") // Add a new rect for each new elements
+        .merge(u) // get the already existing elements as well
+        .transition() // and apply changes to all of them
+        .duration(1000)
+          .attr("x", 1)
+          .attr("transform", function(d) { return "translate(" + x(d.x0) + "," + y(d.length) + ")"; })
+          .attr("width", function(d) { return x(d.x1) - x(d.x0)  ; })
+          .attr("height", function(d) { return height - y(d.length); })
+          .style("fill", "purple")
+		  .style("stroke", "1")
+
+
+    // If less bar in the new histogram, I delete the ones not in use anymore
+    u
+        .exit()
+        .remove()
+
+    }
+
+
+  // Initialize with 20 bins
+  update(20)
+
+
+  // Listen to the button -> update if user change it
+  d3.select("#nBin").on("input", function() {
+    update(+this.value);
+  });
+
+}
+});
+
+
+</script>
